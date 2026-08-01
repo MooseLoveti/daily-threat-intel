@@ -34,6 +34,10 @@ Markdown from a fixed template.
    your preferred Git sync method to pull the daily commits before opening the
    note.
 
+On Windows, `scripts/sync_obsidian_vault.ps1` performs a safe fast-forward-only
+pull. The local setup creates a scheduled task that runs this script hourly;
+it will never merge over local vault edits.
+
 The workflow itself needs no API key or stored personal access token. It uses
 the built-in `GITHUB_TOKEN` and the `copilot-requests: write` permission.
 

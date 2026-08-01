@@ -3,4 +3,5 @@ __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
-
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
