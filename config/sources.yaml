@@ -1,0 +1,42 @@
+# Keep this list to news publishers that publish frequently.  The workflow uses
+# their RSS feeds, rather than asking an AI agent to browse the web.
+sources:
+  - key: therecord
+    name: The Record
+    feed_url: https://therecord.media/feed
+    enabled: true
+    exclude_terms:
+      - podcast
+      - newsletter
+      - sponsored
+
+  - key: bleepingcomputer
+    name: BleepingComputer
+    feed_url: https://www.bleepingcomputer.com/feed/
+    enabled: true
+    exclude_terms:
+      - webinar
+      - deals
+      - sponsored
+      - sale
+
+  - key: thehackernews
+    name: The Hacker News
+    feed_url: https://feeds.feedburner.com/TheHackersNews
+    enabled: true
+    exclude_terms:
+      - webinar
+      - sponsored
+      - download now
+
+settings:
+  timezone: Asia/Tokyo
+  # The first successful run considers this many hours. Later runs use the
+  # timestamp of the last successful render.
+  first_run_lookback_hours: 30
+  max_candidates: 12
+  max_article_characters: 1800
+  request_timeout_seconds: 20
+  # RSS summaries are the default input. Keep this false unless every source
+  # explicitly permits fetching individual article pages.
+  fetch_article_bodies: false

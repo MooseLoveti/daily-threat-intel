@@ -1,0 +1,83 @@
+name: Daily threat-intelligence brief
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+      timezone: "Asia/Tokyo"
+
+# This uses the repository owner's Copilot entitlement in a personally-owned
+# repository. No OpenAI API key or long-lived personal access token is stored.
+permissions:
+  contents: write
+  copilot-requests: write
+
+concurrency:
+  group: daily-threat-brief
+  cancel-in-progress: false
+
+jobs:
+  build-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out private vault repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install feed-processing dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Collect recent news candidates
+        run: |
+          mkdir -p .runtime
+          python scripts/daily_brief.py collect \
+            --config config/sources.yaml \
+            --state state/brief_state.json \
+            --output .runtime/candidates.json
+
+      - name: Set up Copilot CLI
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Generate structured brief with Copilot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          candidate_count=$(python -c "import json; print(len(json.load(open('.runtime/candidates.json', encoding='utf-8'))['articles']))")
+          if [ "$candidate_count" -eq 0 ]; then
+            python scripts/daily_brief.py empty-response --output .runtime/model-output.json
+            exit 0
+          fi
+          python scripts/daily_brief.py prompt --candidates .runtime/candidates.json --output .runtime/prompt.txt
+          npm install --global @github/copilot
+          # Copilot gets only the bounded prompt as input. No shell, network, or
+          # file-writing tools are granted to it.
+          copilot -p "$(cat .runtime/prompt.txt)" --no-ask-user > .runtime/model-output.json
+
+      - name: Validate output and render Obsidian Markdown
+        run: |
+          date_jst=$(TZ=Asia/Tokyo date +%F)
+          python scripts/daily_brief.py render \
+            --config config/sources.yaml \
+            --state state/brief_state.json \
+            --candidates .runtime/candidates.json \
+            --model-output .runtime/model-output.json \
+            --output "content/daily/${date_jst}.md"
+
+      - name: Commit the daily note
+        run: |
+          git add content/daily state
+          if git diff --cached --quiet; then
+            echo "No content changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: add daily threat brief"
+          git push
