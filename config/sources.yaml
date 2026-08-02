@@ -1,5 +1,14 @@
-# Keep this list to news publishers that publish frequently.  The workflow uses
+# Keep this list to news publishers that publish frequently. The workflow uses
 # their RSS feeds, rather than asking an AI agent to browse the web.
+report:
+  kind: threat
+  title: 脅威インテリジェンス
+  categories:
+    incident: 攻撃された企業・組織
+    actor: 攻撃アクター
+    campaign: キャンペーン・攻撃手法
+    vulnerability: 脆弱性・悪用・修正情報
+
 sources:
   - key: therecord
     name: The Record
@@ -34,7 +43,7 @@ settings:
   # The first successful run considers this many hours. Later runs use the
   # timestamp of the last successful render.
   first_run_lookback_hours: 30
-  max_candidates: 12
+  max_candidates: 24
   max_article_characters: 1800
   request_timeout_seconds: 20
   # RSS summaries are the default input. Keep this false unless every source

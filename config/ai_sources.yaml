@@ -1,0 +1,111 @@
+# Independent inputs for the AI-news brief. The three general cyber-news feeds
+# are filtered to AI-relevant items; lab and research feeds are AI-specific.
+report:
+  kind: ai_news
+  title: AIニュース
+  categories:
+    ai_security: AIとセキュリティ
+    ai_announcement: 新たなAIの発表・ベンチマーク
+    ai_research: AIに関する研究
+
+sources:
+  - key: therecord_ai
+    name: The Record
+    feed_url: https://therecord.media/feed
+    enabled: true
+    include_terms:
+      - ai
+      - artificial intelligence
+      - llm
+      - large language model
+      - machine learning
+      - openai
+      - anthropic
+      - gemini
+      - claude
+      - deepfake
+      - prompt injection
+      - ai agent
+    exclude_terms:
+      - podcast
+      - newsletter
+      - sponsored
+
+  - key: bleepingcomputer_ai
+    name: BleepingComputer
+    feed_url: https://www.bleepingcomputer.com/feed/
+    enabled: true
+    include_terms:
+      - ai
+      - artificial intelligence
+      - llm
+      - large language model
+      - machine learning
+      - openai
+      - anthropic
+      - gemini
+      - claude
+      - deepfake
+      - prompt injection
+      - ai agent
+    exclude_terms:
+      - webinar
+      - deals
+      - sponsored
+      - sale
+
+  - key: thehackernews_ai
+    name: The Hacker News
+    feed_url: https://feeds.feedburner.com/TheHackersNews
+    enabled: true
+    include_terms:
+      - ai
+      - artificial intelligence
+      - llm
+      - large language model
+      - machine learning
+      - openai
+      - anthropic
+      - gemini
+      - claude
+      - deepfake
+      - prompt injection
+      - ai agent
+    exclude_terms:
+      - webinar
+      - sponsored
+      - download now
+
+  - key: openai
+    name: OpenAI News
+    feed_url: https://openai.com/news/rss.xml
+    enabled: true
+    exclude_terms: []
+
+  - key: google_deepmind
+    name: Google DeepMind
+    feed_url: https://deepmind.google/blog/rss.xml
+    enabled: true
+    exclude_terms: []
+
+  - key: arxiv_cs_ai
+    name: arXiv cs.AI
+    feed_url: "https://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=25&sortBy=submittedDate&sortOrder=descending"
+    enabled: true
+    exclude_terms: []
+
+  - key: huggingface
+    name: Hugging Face Blog
+    feed_url: https://huggingface.co/blog/feed.xml
+    enabled: true
+    exclude_terms: []
+
+settings:
+  timezone: Asia/Tokyo
+  # Start with a useful initial AI brief; later successful runs use the prior
+  # successful timestamp and therefore only include newly published items.
+  first_run_lookback_hours: 168
+  max_candidates: 24
+  max_article_characters: 1800
+  request_timeout_seconds: 20
+  fetch_article_bodies: false

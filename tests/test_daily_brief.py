@@ -33,6 +33,10 @@ class DailyBriefTests(unittest.TestCase):
         result = daily_brief.canonical_url("https://example.test/a/?utm_source=x&ref=y&id=7#section")
         self.assertEqual(result, "https://example.test/a?id=7")
 
+    def test_include_terms_matches_ai_as_a_word(self):
+        self.assertTrue(daily_brief.matches_include_terms("New AI model", "", ["ai"]))
+        self.assertFalse(daily_brief.matches_include_terms("Daily update", "", ["ai"]))
+
     def test_validate_items_rejects_unknown_candidate_urls(self):
         response = {
             "items": [
@@ -71,6 +75,66 @@ class DailyBriefTests(unittest.TestCase):
         self.assertIn("https://therecord.media/example", markdown)
         self.assertNotIn("unknown:999", markdown)
 
+    def test_compact_render_hides_metadata_and_empty_categories(self):
+        response = {
+            "items": [
+                {
+                    "candidate_ids": ["therecord:1234"],
+                    "primary_category": "incident",
+                    "secondary_categories": ["actor"],
+                    "title_ja": "例示インシデント",
+                    "summary_ja": ["短く要約する。"],
+                    "why_it_matters_ja": "影響を確認する。",
+                    "confidence": "reported",
+                    "evidence": "reporting",
+                }
+            ]
+        }
+        report = {
+            "kind": "threat",
+            "title": "脅威インテリジェンス",
+            "categories": daily_brief.DEFAULT_THREAT_CATEGORY_TITLES,
+        }
+        markdown = daily_brief.render_markdown(
+            daily_brief.validate_items(response, self.candidates),
+            self.candidates,
+            "Asia/Tokyo",
+            report,
+        )
+        self.assertIn("## 攻撃された企業・組織", markdown)
+        self.assertNotIn("## 攻撃アクター", markdown)
+        self.assertNotIn("取得対象", markdown)
+        self.assertNotIn("取得期間", markdown)
+        self.assertNotIn("確度:", markdown)
+        self.assertNotIn("根拠種別", markdown)
+        self.assertNotIn("分類:", markdown)
+
+    def test_ai_report_has_independent_categories_and_prompt(self):
+        report = daily_brief.report_definition(
+            {
+                "report": {
+                    "kind": "ai_news",
+                    "title": "AIニュース",
+                    "categories": {"ai_security": "AIとセキュリティ"},
+                }
+            }
+        )
+        prompt = daily_brief.build_prompt(self.candidates, report)
+        response = {
+            "items": [
+                {
+                    "candidate_ids": ["therecord:1234"],
+                    "primary_category": "ai_security",
+                    "secondary_categories": [],
+                    "title_ja": "AIセキュリティ",
+                    "summary_ja": ["AIに関する安全性のニュース。"],
+                }
+            ]
+        }
+        items = daily_brief.validate_items(response, self.candidates, set(report["categories"]))
+        self.assertIn("Japanese daily AI-news brief", prompt)
+        self.assertEqual(items[0]["primary_category"], "ai_security")
+
     def test_empty_response_is_valid(self):
         parsed = daily_brief.extract_json(json.dumps({"items": []}))
         self.assertEqual(parsed["items"], [])
@@ -78,4 +142,3 @@ class DailyBriefTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

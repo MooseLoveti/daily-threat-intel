@@ -1,92 +1,75 @@
-# Daily Threat Intelligence Vault
+# Daily Intelligence Vault
 
-This private repository is an Obsidian-compatible daily cybersecurity-news vault.
-At 06:00 JST, GitHub Actions reads the RSS feeds in `config/sources.yaml`, lets
-GitHub Copilot CLI classify and summarize the bounded candidates, and commits a
-daily Markdown note to `content/daily/`.
+This private repository generates two Obsidian-compatible Japanese daily reports
+at 06:00 JST with GitHub Actions and GitHub Copilot CLI.
 
-## Current AI integration
+| Report | Inputs and purpose | Markdown output |
+| --- | --- | --- |
+| Threat intelligence | The Record, BleepingComputer, and The Hacker News; incidents, actors, campaigns, and vulnerabilities | `content/daily/YYYY-MM-DD.md` |
+| AI news | Separate AI-security, AI-lab, and research RSS inputs; AI security, announcements/benchmarks, and research | `content/ai-daily/YYYY-MM-DD.md` |
 
-GitHub Models is **not** used: GitHub retired its model catalog and inference
-API on 2026-07-30. This project instead uses GitHub Copilot CLI from an Actions
-workflow, authenticated with its short-lived `GITHUB_TOKEN`. In a personally
-owned repository, usage is billed against the repository owner's Copilot seat.
-You must have an active Copilot entitlement for the scheduled AI step to work.
+The two reports have separate source configurations, deduplication state files,
+and Copilot prompts. They are committed together only after both are rendered.
 
-The workflow grants only `contents: write` and `copilot-requests: write`. It
-does not give Copilot shell, browser, network, SSH, or file-write tools. RSS and
-article fetching are deterministic Python steps; Copilot receives only bounded,
-untrusted excerpts and returns JSON. Python validates that JSON and builds the
-Markdown from a fixed template.
+## How it works
 
-## Initial setup
+1. GitHub Actions reads configured RSS feeds into bounded candidate lists.
+2. Copilot CLI categorizes and writes concise Japanese summaries from those
+   candidates only. It receives no shell, browser, network, SSH, or repository
+   writing tools.
+3. Python validates the returned JSON and produces Markdown from a fixed
+   template. Only source URLs collected from RSS can appear in the report.
+4. Actions commits the Markdown and state files to this private repository.
+5. Obsidian on the phone pulls the desired report folders with Easy Git.
 
-1. Create a **private** GitHub repository and push this directory to it.
-2. Confirm that GitHub Copilot is available on the account that owns the
-   repository. The student benefit can provide GitHub Pro, but Copilot access
-   must be active separately.
-3. In repository **Settings → Actions → General**, allow workflows to have
-   read/write permissions if the account policy overrides the workflow's
-   `contents: write` permission.
-4. In the **Actions** tab, run `Daily threat-intelligence brief` manually once.
-   It will create `content/daily/YYYY-MM-DD.md` and `state/brief_state.json`.
-5. On your phone, make a new Obsidian vault by cloning this private repository
-   with a mobile-compatible Git sync plugin. Configure that plugin to **pull
-   when Obsidian starts**. The daily note will then be available whenever you
-   open Obsidian; no PC needs to be powered on.
+Each report considers at most 24 candidates per run. The default uses RSS titles
+and summaries only; it does not crawl source article pages.
 
-The workflow itself needs no API key or stored personal access token. It uses
-the built-in `GITHUB_TOKEN` and the `copilot-requests: write` permission.
+## Configuration
 
-## Content and source policy
+- `config/sources.yaml`: threat-intelligence sources, categories, and limits.
+- `config/ai_sources.yaml`: independent AI-news sources, categories, and limits.
+- `state/brief_state.json`: threat-report last successful run and 90-day
+  duplicate history.
+- `state/ai_brief_state.json`: independent AI-news duplicate history.
 
-- The configured inputs are daily cyber-news RSS feeds: The Record,
-  BleepingComputer, and The Hacker News. The default never scrapes individual
-  article pages; it uses the RSS title and summary only. This keeps load low and
-  avoids treating an RSS feed as a licence to crawl or republish source text.
-- Add or remove sources only in `config/sources.yaml`; keep RSS/API endpoints
-  rather than letting the AI discover arbitrary sites.
-- The vault publishes an original short Japanese summary, source URL, evidence
-  type, and confidence. It does not reproduce article text or translations.
-- `state/brief_state.json` is committed after a successful render, preventing
-  duplicate articles from appearing again. Failed model runs leave the state
-  untouched for a safe retry.
+The AI-news configuration uses AI-specific feeds from OpenAI, Google DeepMind,
+and arXiv cs.AI. General cyber-news sources are filtered to AI-related terms.
+Add or remove RSS feeds in the matching YAML configuration; do not let the AI
+choose arbitrary sites.
+
+## Report format
+
+The Markdown shows only categories that contain news. It omits retrieval source
+and period banners, empty-category messages, confidence, evidence type, and
+machine classification labels. Source links remain with each item.
 
 ## Phone-only Obsidian setup
 
-The GitHub Actions workflow commits the completed Markdown directly to this
-private repository. Your phone then pulls the latest commit into its local
-Obsidian vault when Obsidian opens. A Windows task, running desktop app, or
-Obsidian Sync subscription is not part of this configuration.
+No PC, Windows task, or Obsidian Sync subscription is needed. The phone pulls
+the completed Markdown from GitHub when Obsidian opens.
 
-Do this once on the phone:
+Use Easy Git and create these two **pull-only** mappings in the same iCloud
+vault. The existing PAT for `MooseLoveti/daily-threat-intel` can be reused; no
+new token is needed.
 
-1. Install Obsidian and create an empty vault named `daily-threat-intel`.
-2. In **Settings → Community plugins**, turn off Restricted mode, browse for a
-   mobile-compatible Git sync plugin, and enable it. `Obsidian Git` is one
-   option; its mobile support is marked experimental by the plugin directory.
-3. On GitHub, create a **fine-grained personal access token** limited to
-   `MooseLoveti/daily-threat-intel` with repository permission
-   **Contents: Read-only**. Give it an expiry date. Never use your account
-   password and never commit the token into this repository.
-4. In the plugin, clone
-   `https://github.com/MooseLoveti/daily-threat-intel.git` into that empty
-   vault, using the token only where the plugin asks for GitHub authentication.
-5. Enable the plugin option named similar to **Pull on startup** or
-   **Automatic pull on startup**. Leave automatic push disabled because this
-   vault is generated by the workflow and normally read-only on your phone.
+| Local Obsidian folder | Repository path | Direction | Auto mode |
+| --- | --- | --- | --- |
+| `脅威インテリジェンス` | `content/daily` | Pull only | On startup |
+| `AIニュース` | `content/ai-daily` | Pull only | On startup |
 
-Mobile operating systems do not guarantee background work while Obsidian is
-closed. Opening Obsidian triggers the pull, which is the intended update point.
+For each mapping, select repository `MooseLoveti/daily-threat-intel` and branch
+`main`. Run `Sync mapping` once after creating a mapping, then opening Obsidian
+will pull later updates automatically.
 
 ## Local checks
 
 ```powershell
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
-python scripts/daily_brief.py collect --config config/sources.yaml --state state/brief_state.json --output .runtime/candidates.json
+python scripts/daily_brief.py collect --config config/sources.yaml --state state/brief_state.json --output .runtime/threat-candidates.json
+python scripts/daily_brief.py collect --config config/ai_sources.yaml --state state/ai_brief_state.json --output .runtime/ai-candidates.json
 ```
 
-The last command only collects candidates. The Copilot command is run by
-GitHub Actions, where the repository `GITHUB_TOKEN` has the correct entitlement
-and permissions.
+The Copilot calls run only in GitHub Actions, using the repository `GITHUB_TOKEN`
+and the repository owner's active Copilot entitlement.
